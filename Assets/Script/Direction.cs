@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-public class Direction : Singleton<Direction>
+public class Direction : Singleton<Direction> // like config
 {
     public enum Dir
     {
@@ -12,15 +12,10 @@ public class Direction : Singleton<Direction>
         Up = 2,
         Down = -2,
     }
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public static readonly int maxBrick = 20;
+    public static readonly float offsetLineY = 2.64f;
+    public static readonly float offsetWallY = 0f;
+    public static readonly float offsetPlayerY = 3f;
+    //public static readonly string WIN_POINT = "WIN";
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

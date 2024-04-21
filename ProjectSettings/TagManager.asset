@@ -3,7 +3,15 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Brick
+  - Push
+  - UnBrick
+  - Line
+  - Wall
+  - Path
+  - Teleport
+  - Map
   layers:
   - Default
   - TransparentFX

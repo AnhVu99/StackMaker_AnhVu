@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 using static Direction;
@@ -15,21 +16,22 @@ public class Map : MonoBehaviour
     public GameObject pathPrefab;
     public GameObject linePrefab;
     public GameObject winPoint;
-    List<Vector3> lsMapPos;
+    List<Vector3> lsWallPos;
     List<Vector3> lsPathPos;
     List<Vector3> lsLinePos;
+    List<GameObject> lsPath;
+    List<GameObject> lsLine;
     //const float mapOffset = 3f;
-    const int maxBrick = 20;
-    const float offsetLineY = 2.64f;
-    const float offsetWallY = 0f;
-    int currDirection = 2;//up
+    const string WIN_POINT = "WIN";
+    public List<Vector3> LsWallPos { get => lsWallPos; set => lsWallPos = value; }
+    public List<Vector3> LsPathPos { get => lsPathPos; set => lsPathPos = value; }
+    public List<Vector3> LsLinePos { get => lsLinePos; set => lsLinePos = value; }
+
+    Direction.Dir currDirection = Direction.Dir.Up;//up
     // Start is called before the first frame update
     void Start()
     {
-        lsMapPos = new List<Vector3>();
-        lsPathPos = new List<Vector3>();
-        lsLinePos = new List<Vector3>();
-        CreatMap();
+        ResetMap();
     }
 
     // Update is called once per frame
@@ -41,8 +43,9 @@ public class Map : MonoBehaviour
     private void CreatMap()
     {
         lsPathPos.Clear();
+        lsPath.Clear();
         lsPathPos.Add(Vector3.zero);
-        currDirection = 2; // up
+        currDirection = Direction.Dir.Up; // up
         while (lsPathPos.Count < maxBrick)
         {
             DrawPathByDirectionAndCurrentPosition(ref lsPathPos, currDirection);
@@ -53,24 +56,25 @@ public class Map : MonoBehaviour
         {
             GameObject newObject = Instantiate(pathPrefab, pos, Quaternion.identity);
             newObject.transform.SetParent(path.transform);
-            //newObject.tag = "Path";
+            newObject.tag = "Path";
+            lsPath.Add(newObject);
         }
         DrawWall();
         DrawLine();
         DrawWinPoint();
     }
 
-    private int GetRandomDirection(int curDir = 0)
+    private Direction.Dir GetRandomDirection(Direction.Dir curDir = 0)
     {
         var dir = UnityEngine.Random.Range(-2, 3);
-        while (dir == 0 || dir == curDir * -1)
+        while (dir == 0 || dir == (int)curDir * -1)
         {
             dir = UnityEngine.Random.Range(-2, 3);
         }
-        return dir;
+        return (Direction.Dir)dir;
     }
 
-    private void DrawPathByDirectionAndCurrentPosition(ref List<Vector3> pPathPos, int pDir)
+    private void DrawPathByDirectionAndCurrentPosition(ref List<Vector3> pPathPos, Direction.Dir pDir)
     {
         int countContinue = UnityEngine.Random.Range(2, 4);
         Vector3 current = pPathPos[pPathPos.Count - 1];
@@ -78,16 +82,16 @@ public class Map : MonoBehaviour
         {
             switch (pDir)
             {
-                case (int)Direction.Dir.Up:
+                case Direction.Dir.Up:
                     pPathPos.Add(new Vector3(current.x + i, current.y, current.z));
                     break;
-                case (int)Direction.Dir.Down:
+                case Direction.Dir.Down:
                     pPathPos.Add(new Vector3(current.x - i, current.y, current.z));
                     break;
-                case (int)Direction.Dir.Left:
+                case Direction.Dir.Left:
                     pPathPos.Add(new Vector3(current.x, current.y, current.z - i));
                     break;
-                case (int)Direction.Dir.Right:
+                case Direction.Dir.Right:
                     pPathPos.Add(new Vector3(current.x, current.y, current.z + i));
                     break;
             }
@@ -96,7 +100,7 @@ public class Map : MonoBehaviour
 
     private void DrawWall()
     {
-        lsMapPos.Clear();
+        lsWallPos.Clear();
         float minX = lsPathPos[0].x;
         float maxX = lsPathPos[0].x;
         float minZ = lsPathPos[0].z;
@@ -137,12 +141,12 @@ public class Map : MonoBehaviour
                 {
                     GameObject newObject = Instantiate(wallPrefab, pos, Quaternion.identity);
                     newObject.transform.SetParent(wall.transform);
-                    //newObject.tag = "Wall";
-                    lsMapPos.Add(pos);
+                    newObject.tag = "Wall";
+                    lsWallPos.Add(pos);
                 }
                 else
                 {
-                    Debug.Log("posPath: " + pos);
+                    //Debug.Log("posPath: " + pos);
                 }
             }
         }
@@ -153,16 +157,16 @@ public class Map : MonoBehaviour
         Vector3 endPoint = lsPathPos[lsPathPos.Count - 1];
         switch (currDirection)
         {
-            case (int)Direction.Dir.Up:
+            case Direction.Dir.Up:
                 if (pos == new Vector3(endPoint.x + 1, offsetWallY, endPoint.z)) return true;
                 break;
-            case (int)Direction.Dir.Down:
+            case Direction.Dir.Down:
                 if (pos == new Vector3(endPoint.x - 1, offsetWallY, endPoint.z)) return true;
                 break;
-            case (int)Direction.Dir.Left:
+            case Direction.Dir.Left:
                 if (pos == new Vector3(endPoint.x, offsetWallY, endPoint.z - 1)) return true;
                 break;
-            case (int)Direction.Dir.Right:
+            case Direction.Dir.Right:
                 if (pos == new Vector3(endPoint.x, offsetWallY, endPoint.z + 1)) return true;
                 break;
         }
@@ -171,6 +175,7 @@ public class Map : MonoBehaviour
     private void DrawLine()
     {
         lsLinePos.Clear();
+        lsLine.Clear();
         Vector3 endPoint = lsPathPos[lsPathPos.Count - 1];
         Vector3 pos;
         Vector3 cPos;
@@ -179,41 +184,41 @@ public class Map : MonoBehaviour
         {
             switch (currDirection)
             {
-                case (int)Direction.Dir.Up:
+                case Direction.Dir.Up:
                     pos = new Vector3(endPoint.x + i, offsetLineY, endPoint.z);
                     cPos = new Vector3(endPoint.x + i, offsetWallY, endPoint.z);
                     ro = new Vector3(-90, 0, 90);
-                    if (lsPathPos.Contains(cPos) || lsMapPos.Contains(cPos)) // check conflict
+                    if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
                         CreatMap();
                         return;
                     }
                     break;
-                case (int)Direction.Dir.Down:
+                case Direction.Dir.Down:
                     pos = new Vector3(endPoint.x - i, offsetLineY, endPoint.z);
                     cPos = new Vector3(endPoint.x - i, offsetWallY, endPoint.z);
                     ro = new Vector3(-90, 0, 90);
-                    if (lsPathPos.Contains(cPos) || lsMapPos.Contains(cPos)) // check conflict
+                    if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
                         CreatMap();
                         return;
                     }
                     break;
-                case (int)Direction.Dir.Left:
+                case Direction.Dir.Left:
                     pos = new Vector3(endPoint.x, offsetLineY, endPoint.z - i);
                     cPos = new Vector3(endPoint.x, offsetWallY, endPoint.z - i);
                     ro = new Vector3(-90, 0, 0);
-                    if (lsPathPos.Contains(cPos) || lsMapPos.Contains(cPos)) // check conflict
+                    if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
                         CreatMap();
                         return;
                     }
                     break;
-                case (int)Direction.Dir.Right:
+                case Direction.Dir.Right:
                     pos = new Vector3(endPoint.x, offsetLineY, endPoint.z + i);
                     cPos = new Vector3(endPoint.x, offsetWallY, endPoint.z + i);
                     ro = new Vector3(-90, 0, 0);
-                    if (lsPathPos.Contains(cPos) || lsMapPos.Contains(cPos)) // check conflict
+                    if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
                         CreatMap();
                         return;
@@ -228,7 +233,8 @@ public class Map : MonoBehaviour
             GameObject newObject = Instantiate(linePrefab, pos, Quaternion.identity);
             newObject.transform.Rotate(ro);
             newObject.transform.SetParent(line.transform);
-            //newObject.tag = "Line";
+            newObject.tag = "Line";
+            lsLine.Add( newObject );
             lsLinePos.Add(pos);
         }
     }
@@ -238,28 +244,88 @@ public class Map : MonoBehaviour
         Vector3 endPoint = lsLinePos[lsLinePos.Count - 1];
         Vector3 ro = Vector3.zero;
         Vector3 pos = Vector3.zero;
-        Debug.Log("Dir: " + currDirection);
+        //Debug.Log("Dir: " + currDirection);
         switch (currDirection)
         {
-            case (int)Direction.Dir.Up:
+            case Direction.Dir.Up:
                 pos = new Vector3(endPoint.x + 1, offsetWallY, endPoint.z);
                 ro = new Vector3(0, 90, 0);
                 break;
-            case (int)Direction.Dir.Down:
+            case Direction.Dir.Down:
                 pos = new Vector3(endPoint.x - 1, offsetWallY, endPoint.z);
                 ro = new Vector3(0, -90, 0);
                 break;
-            case (int)Direction.Dir.Left:
+            case Direction.Dir.Left:
                 pos = new Vector3(endPoint.x, offsetWallY, endPoint.z - 1);
                 ro = new Vector3(0, 180, 0);
                 break;
-            case (int)Direction.Dir.Right:
+            case Direction.Dir.Right:
                 pos = new Vector3(endPoint.x, offsetWallY, endPoint.z + 1);
                 ro = new Vector3(0, 0, 0);
                 break;
         }
         GameObject newObject = Instantiate(winPoint, pos, Quaternion.identity);
         newObject.transform.Rotate(ro);
+        newObject.name = WIN_POINT;
         //newObject.transform.SetParent(line.transform);
+    }
+
+    public void ResetMap()
+    {
+        lsWallPos = new List<Vector3>();
+        lsPathPos = new List<Vector3>();
+        lsLinePos = new List<Vector3>();
+        lsPath = new List<GameObject>();
+        lsLine = new List<GameObject>();
+        // Clear element
+        foreach (Transform child in wall.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in path.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in line.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        GameObject obj = GameObject.Find(WIN_POINT);
+
+        if (obj != null)
+        {
+            Destroy(obj); 
+        }
+        //
+        CreatMap();
+    }
+    public void SetBrickToLine(GameObject brick, Vector3 pos)
+    {
+        pos.y = offsetLineY;
+        foreach (GameObject line in lsLine)
+        {
+            if (line.transform.position == pos)
+            {
+                brick.transform.SetParent(line.transform, false);
+                return;
+            }
+        }
+    }
+
+    public GameObject GetBrickFromPath(Vector3 pos)
+    {
+        foreach (GameObject path in lsPath)
+        {
+            if (path.transform.position == pos && path.transform.Find("dimian") != null)
+            {
+
+                GameObject brick = path.transform.Find("dimian").gameObject;
+                //b
+                //if (brick != null)
+                //Destroy(brick);
+                return brick;
+            }
+        }
+        return null;
     }
 }
