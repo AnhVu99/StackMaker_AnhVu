@@ -12,10 +12,11 @@ public class Direction : Singleton<Direction> // like config
         Up = 2,
         Down = -2,
     }
-    public static readonly int maxBrick = 20;
+    public static readonly int maxBrick = 5;
     public static readonly float offsetLineY = 2.64f;
     public static readonly float offsetWallY = 0f;
     public static readonly float offsetPlayerY = 3f;
+    public static readonly float offsetBrickY = 2.5f;
     //public static readonly string WIN_POINT = "WIN";
 
 }

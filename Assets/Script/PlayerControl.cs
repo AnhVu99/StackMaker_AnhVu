@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using static Direction;
 using static UnityEditor.PlayerSettings;
@@ -19,6 +20,7 @@ public class Player : MonoBehaviour
     private List<GameObject> bricks;
     private List<Vector3> lsCurrPath;
     private List<Vector3> lsCurrLine;
+    private GameObject player;
     // Start is called before the first frame update
     void Start()
     {
@@ -32,6 +34,7 @@ public class Player : MonoBehaviour
         GameObject newObject = Instantiate(playerPrefab, startPoint, Quaternion.identity);
         newObject.transform.SetParent(transform);
         newObject.tag = "Player";
+        player = newObject;
         isMove = false;
         map = GameObject.FindObjectOfType<Map>();
         bricks = new List<GameObject>();
@@ -97,7 +100,7 @@ public class Player : MonoBehaviour
     {
         lsCurrPath = new List<Vector3>();
         lsCurrLine = new List<Vector3>();
-        Vector3 pos = Vector3.zero; 
+        Vector3 pos = Vector3.zero;
         Vector3 currentPos = new Vector3(transform.position.x, offsetWallY, transform.position.z);
         lsCurrPath.Add(currentPos);
         switch (dir)
@@ -121,7 +124,7 @@ public class Player : MonoBehaviour
             }
             else break;
         };
-        while (map.LsLinePos.Contains(new Vector3(currentPos.x, 2.64f, currentPos.z) + pos))
+        while (map.LsLinePos.Contains(new Vector3(currentPos.x, 2.64f, currentPos.z) + pos) || map.LsPathPos.Contains(currentPos + pos))
         {
             Debug.Log("GetVectorPos: " + currentPos);
             if (map.LsLinePos.Contains(new Vector3(currentPos.x, offsetLineY, currentPos.z) + pos))
@@ -129,19 +132,26 @@ public class Player : MonoBehaviour
                 currentPos += pos;
                 lsCurrLine.Add(currentPos);
             }
-            else break;
+            else if (map.LsPathPos.Contains(currentPos + pos))
+            {
+                currentPos += pos;
+                lsCurrPath.Add(currentPos);
+            }
+            else
+                break;
         };
         //return new Vector3(currentPos.x, offsetPlayerY, currentPos.z);
         return currentPos;
     }
     private void MoveCharacter(Vector3 targetPosition)
     {
-        
+
         if (transform.position == targetPosition)
         {
             isMove = false;
             return;
         }
+        //targetPosition.y = transform.position.y;
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
         AddBrick(transform.position);
         RemoveBrick(transform.position);
@@ -152,16 +162,19 @@ public class Player : MonoBehaviour
     }
     private void AddBrick(Vector3 currPos)
     {
-        foreach(Vector3 pos in lsCurrPath)
+        foreach (Vector3 pos in lsCurrPath)
         {
             if (Mathf.RoundToInt(currPos.x) == (int)pos.x && Mathf.RoundToInt(currPos.z) == (int)pos.z)
             {
                 GameObject brick = map.GetBrickFromPath(pos);
                 if (brick != null)
                 {
+                    
                     brick.transform.SetParent(transform, false);
+                    brick.transform.localPosition = new Vector3(0, offsetBrickY + bricks.Count * 0.2f, 0);
+                    player.transform.position = new Vector3(player.transform.position.x, offsetPlayerY + bricks.Count * 0.2f, player.transform.position.z);
                     bricks.Add(brick);
-                    lsCurrPath.Remove(pos);
+                    //lsCurrPath.Remove(pos);
                 }
             }
         }
@@ -169,7 +182,7 @@ public class Player : MonoBehaviour
     private void RemoveBrick(Vector3 currPos)
     {
         if (lsCurrLine.Count == 0) return;
-        if (bricks.Count == 0) 
+        if (bricks.Count == 0)
         {
             isMove = false;
             return;
@@ -179,12 +192,22 @@ public class Player : MonoBehaviour
         {
             if (Mathf.RoundToInt(currPos.x) == (int)pos.x && Mathf.RoundToInt(currPos.z) == (int)pos.z)
             {
-                GameObject brick = bricks[0];
+                GameObject brick = bricks[bricks.Count - 1];
                 if (brick != null)
                 {
                     brick.transform.SetParent(null);
-                    map.SetBrickToLine(brick, pos);
-                    //lsCurrLine.Remove(pos);
+
+                    if (map.SetBrickToLine(brick, pos))
+                    {
+                        bricks.Remove(brick);
+                        lsCurrLine.Remove(pos);
+                        player.transform.position = new Vector3(player.transform.position.x, offsetPlayerY + bricks.Count * 0.2f, player.transform.position.z);
+                    }
+                    else
+                    {
+                        brick.transform.SetParent(transform);
+                    }
+                    break;
                 }
             }
         }

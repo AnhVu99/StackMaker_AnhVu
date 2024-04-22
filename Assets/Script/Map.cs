@@ -44,6 +44,7 @@ public class Map : MonoBehaviour
     {
         lsPathPos.Clear();
         lsPath.Clear();
+        lsLinePos.Clear();
         lsPathPos.Add(Vector3.zero);
         currDirection = Direction.Dir.Up; // up
         while (lsPathPos.Count < maxBrick)
@@ -190,7 +191,7 @@ public class Map : MonoBehaviour
                     ro = new Vector3(-90, 0, 90);
                     if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
-                        CreatMap();
+                        ResetMap();
                         return;
                     }
                     break;
@@ -200,7 +201,7 @@ public class Map : MonoBehaviour
                     ro = new Vector3(-90, 0, 90);
                     if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
-                        CreatMap();
+                        ResetMap();
                         return;
                     }
                     break;
@@ -210,7 +211,7 @@ public class Map : MonoBehaviour
                     ro = new Vector3(-90, 0, 0);
                     if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
-                        CreatMap();
+                        ResetMap();
                         return;
                     }
                     break;
@@ -220,7 +221,7 @@ public class Map : MonoBehaviour
                     ro = new Vector3(-90, 0, 0);
                     if (lsPathPos.Contains(cPos) || lsWallPos.Contains(cPos)) // check conflict
                     {
-                        CreatMap();
+                        ResetMap();
                         return;
                     }
                     break;
@@ -299,17 +300,21 @@ public class Map : MonoBehaviour
         //
         CreatMap();
     }
-    public void SetBrickToLine(GameObject brick, Vector3 pos)
+    public bool SetBrickToLine(GameObject brick, Vector3 pos)
     {
         pos.y = offsetLineY;
         foreach (GameObject line in lsLine)
         {
             if (line.transform.position == pos)
             {
+                if (line.transform.childCount != 0) return false;
                 brick.transform.SetParent(line.transform, false);
-                return;
+                brick.transform.localPosition = new Vector3(0, 0, -0.35f);
+                brick.transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+                return true;
             }
         }
+        return false;
     }
 
     public GameObject GetBrickFromPath(Vector3 pos)
